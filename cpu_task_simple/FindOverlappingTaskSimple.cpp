@@ -66,9 +66,7 @@ public:
                 contig_interval_start += vs_size_arr[i]*2;
                 reach_arr_start += reach_len[i];
             }
-            getOverlapping(p_query+1, contig_interval_start, reach_arr_start,
-                vs_size_arr[contig_id], reach_length_arr[contig_id],
-                shift_arr[contig_id], result);
+            getOverlapping(p_query+1, contig_interval_start, reach_arr_start, vs_size_arr[contig_id], reach_length_arr[contig_id], shift_arr[contig_id], result);
             result.push_back(-1);
         }
         // collect result to the data transfer reigion (by getOutput)
