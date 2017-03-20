@@ -1,42 +1,49 @@
-#define R 128
-#define Q 64
-#define M 8
-#define QUERY_BATCH 10
-#define OUT_BUFFER_WIDTH 112
-#define OUT_BUFFER_HEIGHT Q*QUERY_BATCH
-
+#include "k5acc.h"
+#include <stdio.h>
 
 int getOverlapping(int local_queries[Q*2], int local_ref[R*2], int local_fifo[Q*OUT_BUFFER_WIDTH], int offset){
+    //printf("offset = %d\n", offset);
     int idx = 0;
     for(int i = 0; i < Q*2; i += 2){ // one query
+        //printf("query: (%d, %d): ", local_queries[i], local_queries[i+1]);
         for(int j = 0; j < R*2; j += 2){    // one ref interval
-            if(local_queries[i] <= local_ref[j] && local_ref[j] <= local_queries[i+1]
-                || local_queries[i] <= local_ref[j+1] && local_ref[j+1] <= local_queries[i+1])
+            //printf("(%d, %d) ? ", local_ref[j], local_ref[j+1]);
+            if(!(local_queries[i+1] < local_ref[j] || local_ref[j+1] < local_queries[i])){
                 local_fifo[idx++] = (j >> 1) + offset;
+                //printf("%d, ", (j >> 1) + offset);
+            }
+
         }
+        //printf("-1\n");
         local_fifo[idx++] = -1;
     }
     return idx;
 }
 
-void wordload(int* queries, int* refs, int* dram_out_buffer, int queries_len, int ref_len){
+void workload(int* queries, int* refs, int* dram_out_buffer, int queries_len, int ref_len){
     // queries_len is a multiple of Q*2
     // ref_len is a multiple of M*R*2
-    int out_buffer[OUT_BUFFER_WIDTH*OUT_BUFFER_HEIGHT];
+    int out_buffer[OUT_BUFFER_HEIGHT][OUT_BUFFER_WIDTH];
     int idx_out_buffer[OUT_BUFFER_HEIGHT] = {};
     int idx_dram_out_buffer = 0;
     int local_ref[M][R*2];
     int local_fifo[M][Q*OUT_BUFFER_WIDTH];
     int local_queries[Q*2];
 
+    // initialize fifo
+    for(int i = 0; i < M; i++)
+        for(int j = 0; j < Q*OUT_BUFFER_WIDTH; j++)
+            local_fifo[i][j] = -2;
+    
     for(int i = 0, iter = 0; i < queries_len; i += 2*Q){
+       
         // copy queries from dram to bram
-        for(int j = 0; j < 2*Q; j += 2)
+        for(int j = 0; j < 2*Q; j += 2){
             local_queries[j] = queries[i + j];
             local_queries[j+1] = queries[i + j + 1];
         }
         // copy references from dram to bram
-        for(int j = 0; j < ref_len; j += 2*M){  // iter through all the refs
+        for(int j = 0; j < ref_len; j += 2*M*R){  // iter through all the refs
             // loop unroll here
             for(int k = 0; k < M; k++){ // M process unit
                 int offset = j + k*R*2;
@@ -46,23 +53,29 @@ void wordload(int* queries, int* refs, int* dram_out_buffer, int queries_len, in
                 }
                 // process queries
                 int len = getOverlapping(local_queries, local_ref[k], local_fifo[k], offset >> 1);
-                local_fifo[len] = -2;
+                local_fifo[k][len] = -2;
                 // flush FIFO to out_buffer
                 int row = iter*Q;
+                //printf("flush when j = %d\n", j);
                 for(int l = 0; l < Q*OUT_BUFFER_WIDTH; l++){
-                    if(local_fifo[l] == -1){
+                    int num = local_fifo[k][l];
+                    local_fifo[k][l] = -2;
+                    if(num == -1){
                         ++row;
                     }
-                    else if(local_fifo[l] != -2){
-                        out_buffer[row][idx_out_buffer[row]++] = local_fifo[l];
+                    else if(num != -2){
+                        if(row >= OUT_BUFFER_HEIGHT)
+                            printf("row = %d, idx = %d, num = %d\n", row, idx_out_buffer[row], num);
+                        out_buffer[row][idx_out_buffer[row]++] = num;
                     }
                     
                 }
+                //printf("done\n");
             }    
         }
-        // if iter === QUERY_BATCH, write back to dram, reset iter
+        // if iter === QUERY_BATCH-1, write back to dram, reset iter
         // otherwise iter++
-        if (iter == QUERY_BATCH){
+        if (iter == QUERY_BATCH-1){
             iter = 0;
             for (int j = 0; j < Q * QUERY_BATCH; j++){
                 for (int k = 0; k < OUT_BUFFER_WIDTH; k++){
@@ -73,10 +86,13 @@ void wordload(int* queries, int* refs, int* dram_out_buffer, int queries_len, in
                         dram_out_buffer[idx_dram_out_buffer++] = -1;
                     }
                 }
+                idx_out_buffer[j] = 0;
             }
         }
         else{
             iter++;
         }
     }
+    //printf("done, idx = %d\n", idx_dram_out_buffer);
+    dram_out_buffer[idx_dram_out_buffer++] = -2;
 }
