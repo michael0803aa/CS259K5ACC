@@ -8,16 +8,19 @@ int overlap(int qryS, int qryE, int refS, int refE){
 }
 
 int main(){
-    srand(8888);
+    srand(1728);
     
     // storage for references and queries
     int ref[REF_NUM*2] = {};
     int queries[QUERY_NUM*2] = {};
-    int refResult[REF_NUM*QUERY_NUM];
+    //int* queries = (int*)malloc(sizeof(int)*QUERY_NUM*2);
+    // int refResult[REF_NUM*QUERY_NUM];
+    int* refResult = (int*)malloc(sizeof(int)*REF_NUM*QUERY_NUM);
 
     const int maxRefInrLen = 50;
     const int maxQryInrLen = 100;
     const int maxHop = 15;
+    const int maxQryStart = 100000;
     int refStart = 2;
     int queryStart = 5;
     // generate ref intervals
@@ -31,9 +34,11 @@ int main(){
     // generate query intervals and the result
     int refResultIdx = 0;
     for(int i = 0; i < QUERY_NUM*2; i += 2){
-        queries[i] = queryStart;
-        queries[i+1] = queryStart + (rand() % maxQryInrLen) + 1;
-        queryStart += rand() % maxHop + 1;
+        // queries[i] = queryStart;
+        // queries[i+1] = queryStart + (rand() % maxQryInrLen) + 1;
+        // queryStart += rand() % maxHop + 1;
+        queries[i] = rand() % maxQryStart + 1;
+        queries[i+1] = queries[i] + (rand() % maxQryInrLen) + 1;
         printf("(%d, %d) ", queries[i], queries[i+1]);
 
         for(int j = 0; j < REF_NUM*2; j += 2){
@@ -55,7 +60,9 @@ int main(){
 
 
     // create output buffer for accelerator
-    int dram_out_buffer[REF_NUM*QUERY_NUM] = {};
+    //int dram_out_buffer[OUT_BUFFER_WIDTH*QUERY_NUM] = {};
+    printf("size = %d\n", OUT_BUFFER_WIDTH*QUERY_NUM);
+    int* dram_out_buffer = (int*)malloc(sizeof(int) * OUT_BUFFER_WIDTH*QUERY_NUM);
     workload(queries, ref, dram_out_buffer, QUERY_NUM*2, REF_NUM*2);
 
     // print dram result
