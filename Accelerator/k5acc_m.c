@@ -29,9 +29,12 @@ void workload(int* queries, int* refs, int* dram_out_buffer){
     int idx_out_buffer[OUT_BUFFER_HEIGHT] = {};
     int idx_dram_out_buffer = 0;
     int local_ref[M][R*2];
-    #pragma HLS ARRAY_PARTITION variable=local_ref complete dim=2
+    #pragma HLS ARRAY_PARTITION variable=local_ref complete dim=1
+
+
     int local_fifo[M][Q*OUT_BUFFER_WIDTH];
-    int local_queries[Q*2];
+    int local_queries[M][Q*2];  // M copies of queries
+    #pragma HLS ARRAY_PARTITION variable=local_queries complete dim=1
     
     int queries_len = QUERY_NUM;
     int ref_len = REF_NUM;
@@ -52,26 +55,28 @@ void workload(int* queries, int* refs, int* dram_out_buffer){
     
     for(i = 0, iter = 0; i < queries_len; i += 2*Q){ // Loop3
        
-        // copy queries from dram to bram
-        int j = 0;
-        for(j = 0; j < 2*Q; j += 2){
-            local_queries[j] = queries[i + j];
-            local_queries[j+1] = queries[i + j + 1];
-        }
         // copy references from dram to bram
         for(j = 0; j < ref_len; j += 2*M*R){  // iter through all the refs // Loop3.2
+
             // loop unroll here
             int k = 0;
             for(k = 0; k < M; k++){ // M process unit
+                #pragma HLS UNROLL factor=16
+                // copy queries from dram to bram
+                int l;
+                for(l = 0; l < 2*Q; l += 2){
+                    local_queries[k][l] = queries[i + l];
+                    local_queries[k][l+1] = queries[i + l + 1];
+                }
+
                 int offset = j + k*R*2;
-                int l = 0;
                 for(l = 0; l < R*2; l += 2){    // for each process unit, load corresponding refs
-                    #pragma HLS UNROLL factor=4 
+              //      #pragma HLS UNROLL factor=4 
                     local_ref[k][l] = refs[offset + l];
                     local_ref[k][l+1] = refs[offset + l + 1];
                 }
                 // process queries
-                int len = getOverlapping(local_queries, local_ref[k], local_fifo[k], offset >> 1);
+                int len = getOverlapping(local_queries[k], local_ref[k], local_fifo[k], offset >> 1);
                 local_fifo[k][len] = -2;
                 // flush FIFO to out_buffer
                 int row = iter*Q;
