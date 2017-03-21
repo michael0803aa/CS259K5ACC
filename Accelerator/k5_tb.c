@@ -24,11 +24,11 @@ int main(){
     int refStart = 2;
     int queryStart = 5;
     // generate ref intervals
-    for(int i = 0; i < REF_NUM*2; i += 2){
-        ref[i] = refStart;
-        ref[i+1] = refStart + (rand() % maxRefInrLen) + 1;
+    for(int k = 0; k < REF_NUM*2; k += 2){
+        ref[k] = refStart;
+        ref[k+1] = refStart + (rand() % maxRefInrLen) + 1;
         refStart += rand() % maxHop + 1;
-        printf("%d: (%d, %d)\n", i >>1, ref[i], ref[i+1]);
+        printf("%d: (%d, %d)\n", k >>1, ref[k], ref[k+1]);
     }
     printf("======\n");
     // generate query intervals and the result

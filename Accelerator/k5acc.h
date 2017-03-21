@@ -4,7 +4,7 @@
 
 #define R 16      // 128
 #define Q 8       // 64
-#define M 4        // 8
+#define M 4         // 8
 #define QUERY_NUM Q*64
 #define REF_NUM R*M*5
 #define QUERY_BATCH 2
