@@ -62,20 +62,28 @@ void workload(int* queries, int* refs, int* dram_out_buffer){
         // copy references from dram to bram
         for(j = 0; j < ref_len; j += 2*M*R){  // iter through all the refs // Loop 34.1
             #pragma HLS PIPELINE II=1
-
-            // loop unroll here
+            // copy query from dram to bram
             int k = 0;
-            // load data from dram to bram
+            for(k = 0; k < 2*Q; k += 2){
+                //#pragma HLS PIPELINE II=1
+                local_queries[0][k] = queries[i + k];
+                local_queries[0][k+1] = queries[i + k + 1];
+            }
+
+            // duplicate the queries M-1 times
+            for(k = 1; k < M; k++){
+                int l;
+                for(l = 0; l < 2*Q; l += 2){
+                    //#pragma HLS PIPELINE II=1
+                    local_queries[k][l] = local_queries[0][l];
+                    local_queries[k][l+1] = local_queries[0][l+1];
+                }
+            }
+            // load refs from dram to bram
             for(k = 0; k < M; k++){ // M process unit  Loop 34.1.1
                 #pragma HLS PIPELINE II=1
                 // copy queries from dram to bram
                 int l;
-                for(l = 0; l < 2*Q; l += 2){
-                    //#pragma HLS PIPELINE II=1
-                    local_queries[k][l] = queries[i + l];
-                    local_queries[k][l+1] = queries[i + l + 1];
-                }
-
                 int offset = j + k*R*2;
                 for(l = 0; l < R*2; l += 2){    // for each process unit, load corresponding refs
                     //#pragma HLS PIPELINE II=1
