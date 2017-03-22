@@ -35,7 +35,7 @@ void workload(int* queries, int* refs, int* dram_out_buffer){
     int local_fifo[M][Q*OUT_BUFFER_WIDTH];
     int local_queries[M][Q*2];  // M copies of queries
     #pragma HLS ARRAY_PARTITION variable=local_queries complete dim=1
-    #pragma HLS ARRAY_PARTITION variable=local_queries complete dim=1
+    #pragma HLS ARRAY_PARTITION variable=local_fifo complete dim=1
     
     int queries_len = QUERY_NUM;
     int ref_len = REF_NUM;
@@ -51,7 +51,7 @@ void workload(int* queries, int* refs, int* dram_out_buffer){
     // initialize fifo
     int i = 0, j, iter = 0;
     for(i = 0; i < M; i++){ // Loop2
-        #pragma HLS UNROLL factor=32
+        #pragma HLS UNROLL
         for(j = 0; j < Q*OUT_BUFFER_WIDTH; j++){    // loop 2 ~ 33
             local_fifo[i][j] = -2;
         }
@@ -63,6 +63,7 @@ void workload(int* queries, int* refs, int* dram_out_buffer){
 
             // loop unroll here
             int k = 0;
+            // load data from dram to bram
             for(k = 0; k < M; k++){ // M process unit  Loop 34.1.1
                 //#pragma HLS PIPELINE II=1
                 // copy queries from dram to bram
@@ -82,7 +83,7 @@ void workload(int* queries, int* refs, int* dram_out_buffer){
                 }
             }
             for(k = 0; k < M; k++){ // M process unit
-                #pragma HLS UNROLL factor=32
+                #pragma HLS UNROLL
                 // process queries
                 int offset = j + k*R*2;
                 int len = getOverlapping(local_queries[k], local_ref[k], local_fifo[k], offset >> 1);
