@@ -63,6 +63,10 @@ int main(){
     //int dram_out_buffer[OUT_BUFFER_WIDTH*QUERY_NUM] = {};
     //printf("size = %d\n", OUT_BUFFER_WIDTH*QUERY_NUM);
     int* dram_out_buffer = (int*)malloc(sizeof(int) * OUT_BUFFER_WIDTH*QUERY_NUM);
+    if(dram_out_buffer == 0){
+        printf("not enough memory G__G\n");
+        return -1;
+    }
     workload(queries, ref, dram_out_buffer);
 
     // print dram result
