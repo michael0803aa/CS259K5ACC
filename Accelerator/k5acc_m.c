@@ -34,8 +34,9 @@ void workload(int* queries, int* refs, int* dram_out_buffer){
 
     int local_fifo[M][Q*OUT_BUFFER_WIDTH];
     int local_queries[M][Q*2];  // M copies of queries
-    #pragma HLS ARRAY_PARTITION variable=local_queries complete dim=1
     #pragma HLS ARRAY_PARTITION variable=local_fifo complete dim=1
+    #pragma HLS ARRAY_PARTITION variable=local_queries complete dim=1
+
     
     int queries_len = QUERY_NUM;
     int ref_len = REF_NUM;
@@ -60,12 +61,13 @@ void workload(int* queries, int* refs, int* dram_out_buffer){
     for(i = 0, iter = 0; i < queries_len; i += 2*Q){ // Loop 34
         // copy references from dram to bram
         for(j = 0; j < ref_len; j += 2*M*R){  // iter through all the refs // Loop 34.1
+            #pragma HLS PIPELINE II=1
 
             // loop unroll here
             int k = 0;
             // load data from dram to bram
             for(k = 0; k < M; k++){ // M process unit  Loop 34.1.1
-                //#pragma HLS PIPELINE II=1
+                #pragma HLS PIPELINE II=1
                 // copy queries from dram to bram
                 int l;
                 for(l = 0; l < 2*Q; l += 2){
@@ -118,8 +120,10 @@ void workload(int* queries, int* refs, int* dram_out_buffer){
             iter = 0;
             int j = 0;
             for (j = 0; j < Q * QUERY_BATCH; j++){  // 34.3
+                #pragma HLS PIPELINE II=1
                 int k = 0;
                 for (k = 0; k < OUT_BUFFER_WIDTH; k++){ // 34.3.1
+                #pragma HLS PIPELINE II=1
                     if (k < idx_out_buffer[j]){
                         dram_out_buffer[idx_dram_out_buffer++] = out_buffer[j][k];
                     }
