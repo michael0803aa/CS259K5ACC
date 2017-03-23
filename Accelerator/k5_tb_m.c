@@ -11,15 +11,17 @@ int main(){
     srand(1728);
     
     // storage for references and queries
-    int ref[REF_NUM*2] = {};
-    int queries[QUERY_NUM*2] = {};
+    //static int ref[REF_NUM*2] = {};
+    //static int queries[QUERY_NUM*2] = {};
+    int* ref = (int*)malloc(sizeof(int)*REF_NUM*2);
+    int* queries = (int*)malloc(sizeof(int)*QUERY_NUM*2);
     //int* queries = (int*)malloc(sizeof(int)*QUERY_NUM*2);
     // int refResult[REF_NUM*QUERY_NUM];
-    int* refResult = (int*)malloc(sizeof(int)*REF_NUM*QUERY_NUM);
+    int* refResult = (int*)malloc(sizeof(int)*OUT_BUFFER_WIDTH*QUERY_NUM);
 
-    const int maxRefInrLen = 50;
-    const int maxQryInrLen = 100;
-    const int maxHop = 15;
+    const int maxRefInrLen = 100;
+    const int maxQryInrLen = 80;
+    const int maxHop = 40;
     const int maxQryStart = 100000;
     int refStart = 2;
     int queryStart = 5;
