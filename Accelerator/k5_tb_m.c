@@ -41,7 +41,8 @@ int main(){
     //printf("======\n");
     // generate query intervals and the result
     int refResultIdx = 0;
-    for(int i = 0; i < QUERY_NUM*2; i += 2){
+    int i;
+    for(i = 0; i < QUERY_NUM*2; i += 2){
         // queries[i] = queryStart;
         // queries[i+1] = queryStart + (rand() % maxQryInrLen) + 1;
         // queryStart += rand() % maxHop + 1;
@@ -77,9 +78,9 @@ int main(){
     // ************************************************************************
 
     // **************** now, it's a 2 d array ************************
-    int* dram_out_buffer[REF_SLICE_NUM];
-    for(int i = 0; i < REF_SLICE_NUM; i++){
-        dram_out_buffer[i] = (int*)malloc(sizeof(int) * OUT_BUFFER_WIDTH*QUERY_NUM);
+    static int dram_out_buffer[REF_SLICE_NUM][OUT_BUFFER_WIDTH*QUERY_NUM];
+    for(i = 0; i < REF_SLICE_NUM; i++){
+       // dram_out_buffer[i] = (int*)malloc(sizeof(int) * OUT_BUFFER_WIDTH*QUERY_NUM);
         memset(dram_out_buffer[i], 255, sizeof(int) * OUT_BUFFER_WIDTH*QUERY_NUM);
     }
     workload(queries, ref, dram_out_buffer);
@@ -88,7 +89,7 @@ int main(){
     int diff = 0;
     int resStartIdx[REF_SLICE_NUM] = {};
     p = 0;
-    for(int i = 0; i < QUERY_NUM; i++){
+    for(i = 0; i < QUERY_NUM; i++){
         for(int j = 0; j < REF_SLICE_NUM; j++){
             while(dram_out_buffer[j][resStartIdx[j]] != -1){
                 //printf("(%d, %d), ", j, dram_out_buffer[j][resStartIdx[j]]);

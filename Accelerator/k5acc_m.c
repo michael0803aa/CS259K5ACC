@@ -24,7 +24,7 @@ int getOverlapping(int local_queries[Q*2], int local_ref[R*2], int local_fifo[Q*
     return idx;
 }
 
-void workload(int* queries, int* refs, int** dram_out_buffer){
+void workload(int* queries, int* refs, int dram_out_buffer[REF_SLICE_NUM][OUT_BUFFER_WIDTH*QUERY_NUM]){
     // queries_len is a multiple of Q*2
     // ref_len is a multiple of M*R*2
     int out_buffer[OUT_BUFFER_HEIGHT][OUT_BUFFER_WIDTH];
