@@ -40,8 +40,8 @@ void workload(int* queries, int* refs, int* dram_out_buffer){
     #pragma HLS ARRAY_PARTITION variable=local_queries complete dim=1
 
     
-    int queries_len = QUERY_NUM;
-    int ref_len = REF_NUM;
+    int queries_len = QUERY_NUM*2;
+    int ref_len = REF_NUM*2;
 
     #pragma HLS INTERFACE m_axi port=queries offset=slave depth=1000000
     #pragma HLS INTERFACE m_axi port=refs offset=slave depth=1000000
