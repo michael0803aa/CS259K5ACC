@@ -40,8 +40,8 @@ void workload(int* queries, int* refs, int** dram_out_buffer){
     #pragma HLS ARRAY_PARTITION variable=local_queries complete dim=1
 
     
-    int queries_len = QUERY_NUM;
-    int ref_len = REF_NUM;
+    int queries_len = QUERY_NUM * 2;
+    int ref_len = REF_NUM * 2;
 
     #pragma HLS INTERFACE m_axi port=queries offset=slave depth=1000000
     #pragma HLS INTERFACE m_axi port=refs offset=slave depth=1000000
@@ -60,7 +60,9 @@ void workload(int* queries, int* refs, int** dram_out_buffer){
         }
     }
 
-    for(i = 0, rIter = 0; i < ref_len; i += M*R*2, rIter++){
+    for(i = 0, rIter = 0; i < ref_len; i += REF_NUM/REF_SLICE_NUM*2, rIter++){
+        
+        printf("i = %d\n", i);
         idx_dram_out_buffer = 0;
         // load refs from dram to bram
         for(j = 0; j < M; j++){ // M process unit  Loop 34.1.1
@@ -78,6 +80,7 @@ void workload(int* queries, int* refs, int** dram_out_buffer){
         // iterate through all the queries
         int qIter;
         for(j = 0, qIter = 0; j < queries_len; j += 2*Q){
+            printf("query = %d\n", j);
             // copy queries from dram to bram
             int k = 0;
             for(k = 0; k < 2*Q; k += 2){
