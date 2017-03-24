@@ -12,12 +12,12 @@
 #define OUT_BUFFER_WIDTH 112
 #define OUT_BUFFER_HEIGHT Q*QUERY_BATCH
 */
-#define Q 4       // 64
-#define QUERY_NUM Q*4   // 12M
-#define REF_NUM 256 // 8M
+#define Q 16       // 64
+#define QUERY_NUM Q*16   // 12M
+#define REF_NUM 2048 // 8M
 
-#define REF_SLICE_NUM 2
-#define M 2         // 8
+#define REF_SLICE_NUM 4
+#define M 4         // 8
 #define R (REF_NUM/REF_SLICE_NUM/M)     // 128
 
 #define QUERY_BATCH 1
