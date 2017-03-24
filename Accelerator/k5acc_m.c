@@ -52,7 +52,7 @@ void workload(int* queries, int* refs, int** dram_out_buffer){
     #pragma HLS INTERFACE s_axilite port=return bundle=control
 
     // initialize fifo
-    int i = 0, j, iter = 0;
+    int i = 0, j, rIter;
     for(i = 0; i < M; i++){ // Loop2
         #pragma HLS UNROLL
         for(j = 0; j < Q*OUT_BUFFER_WIDTH; j++){    // loop 2 ~ 33
@@ -60,16 +60,25 @@ void workload(int* queries, int* refs, int** dram_out_buffer){
         }
     }
 
-    for(i = 0; i < REF_SLICE_NUM; i++){
+    for(i = 0, rIter = 0; i < ref_len; i += M*R*2, rIter++){
+        idx_dram_out_buffer = 0;
         // load refs from dram to bram
-
-    }
-    
-    for(i = 0, iter = 0; i < queries_len; i += 2*Q){ // Loop 34
-        // copy references from dram to bram
-        for(j = 0; j < ref_len; j += 2*M*R){  // iter through all the refs // Loop 34.1
+        for(j = 0; j < M; j++){ // M process unit  Loop 34.1.1
             //#pragma HLS PIPELINE II=1
-            // copy query from dram to bram
+            // copy queries from dram to bram
+            int k;
+            int offset = i + j*R*2;
+            for(k = 0; k < R*2; k += 2){    // for each process unit, load corresponding refs
+                //#pragma HLS PIPELINE II=1 
+                local_ref[j][k] = refs[offset + k];
+                local_ref[j][k+1] = refs[offset + k + 1];
+            }
+        }
+
+        // iterate through all the queries
+        int qIter;
+        for(j = 0, qIter = 0; j < queries_len; j += 2*Q){
+            // copy queries from dram to bram
             int k = 0;
             for(k = 0; k < 2*Q; k += 2){
                 //#pragma HLS PIPELINE II=1
@@ -86,34 +95,23 @@ void workload(int* queries, int* refs, int** dram_out_buffer){
                     local_queries[k][l+1] = local_queries[0][l+1];
                 }
             }
-            // load refs from dram to bram
-            for(k = 0; k < M; k++){ // M process unit  Loop 34.1.1
-                //#pragma HLS PIPELINE II=1
-                // copy queries from dram to bram
-                int l;
-                int offset = j + k*R*2;
-                for(l = 0; l < R*2; l += 2){    // for each process unit, load corresponding refs
-                    //#pragma HLS PIPELINE II=1
-              //      #pragma HLS UNROLL factor=4 
-                    local_ref[k][l] = refs[offset + l];
-                    local_ref[k][l+1] = refs[offset + l + 1];
-                }
-            }
+
             for(k = 0; k < M; k++){ // M process unit
                 #pragma HLS UNROLL
                 // process queries
                 int offset = j + k*R*2;
                 int len = getOverlapping(local_queries[k], local_ref[k], local_fifo[k], offset >> 1);
                 local_fifo[k][len] = -2;
-                // flush FIFO to out_buffer
+                
             }
+            // flush FIFO to out_buffer
             for(k = 0; k < M; k++){ // M process unit, loop 34.1.2
                 //#pragma HLS PIPELINE II=1
-                int row = iter*Q;
+                int row = qIter*Q;
                 //printf("flush when j = %d\n", j);
                 int l;
                 for(l = 0; l < Q*OUT_BUFFER_WIDTH; l++){
-                #pragma HLS PIPELINE II=2
+                    #pragma HLS PIPELINE II=2
                     int num = local_fifo[k][l];
                     local_fifo[k][l] = -2;
                     if(num == -1){
@@ -127,32 +125,32 @@ void workload(int* queries, int* refs, int** dram_out_buffer){
                     
                 }
                 //printf("done\n");
-            }    
-        }
-        // if iter === QUERY_BATCH-1, write back to dram, reset iter
-        // otherwise iter++
-        if (iter == QUERY_BATCH-1){ 
-            iter = 0;
-            int j = 0;
-            for (j = 0; j < Q * QUERY_BATCH; j++){  // 34.3
-                //#pragma HLS PIPELINE II=1
+            }
+            // flush out_buffer to dram_buffer
+            if (qIter == QUERY_BATCH-1){ 
+                qIter = 0;
                 int k = 0;
-                for (k = 0; k < OUT_BUFFER_WIDTH; k++){ // 34.3.1
-                #pragma HLS PIPELINE II=3
-                    if (k < idx_out_buffer[j]){
-                        dram_out_buffer[idx_dram_out_buffer++] = out_buffer[j][k];
+                for (k = 0; k < Q * QUERY_BATCH; k++){  // 34.3
+                    //#pragma HLS PIPELINE II=1
+                    int l = 0;
+                    for (l = 0; l < OUT_BUFFER_WIDTH; l++){ // 34.3.1
+                        #pragma HLS PIPELINE II=3
+                        if (l < idx_out_buffer[k]){
+                            dram_out_buffer[rIter][idx_dram_out_buffer++] = out_buffer[j][k];
+                        }
+                        else if (k == idx_out_buffer[j]){
+                            dram_out_buffer[rIter][idx_dram_out_buffer++] = -1;
+                        }
                     }
-                    else if (k == idx_out_buffer[j]){
-                        dram_out_buffer[idx_dram_out_buffer++] = -1;
-                    }
+                    idx_out_buffer[k] = 0;
                 }
-                idx_out_buffer[j] = 0;
+            }
+            else{
+                qIter++;
             }
         }
-        else{
-            iter++;
-        }
+        dram_out_buffer[rIter][idx_dram_out_buffer++] = -2;
     }
     //printf("done, idx = %d\n", idx_dram_out_buffer);
-    dram_out_buffer[idx_dram_out_buffer++] = -2;
+    //dram_out_buffer[idx_dram_out_buffer++] = -2;
 }

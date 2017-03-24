@@ -18,10 +18,15 @@ int main(){
     //int* queries = (int*)malloc(sizeof(int)*QUERY_NUM*2);
     // int refResult[REF_NUM*QUERY_NUM];
     int* refResult = (int*)malloc(sizeof(int)*OUT_BUFFER_WIDTH*QUERY_NUM);
-
+    /*
     const int maxRefInrLen = 100;
     const int maxQryInrLen = 80;
     const int maxHop = 40;
+    const int maxQryStart = 100000;
+    */
+    const int maxRefInrLen = 200;
+    const int maxQryInrLen = 40;
+    const int maxHop = 15;
     const int maxQryStart = 100000;
     int refStart = 2;
     int queryStart = 5;
@@ -81,14 +86,23 @@ int main(){
     workload(queries, ref, dram_out_buffer);
 
     // print dram result
-    p = 0;
     int diff = 0;
-    while(p < REF_NUM*QUERY_NUM && dram_out_buffer[p] != -2){
-        if(dram_out_buffer[p] != refResult[p]) diff++;
-        p++;
-        //printf("%d, ", dram_out_buffer[p++]);
+    int resStartIdx[REF_SLICE_NUM] = {};
+    p = 0;
+    for(int i = 0; i < QUERY_NUM; i++){
+        for(int j = 0; j < REF_SLICE_NUM; j++){
+            while(dram_out_buffer[j][resStartIdx[j]] != -1){
+                printf("%d, ", dram_out_buffer[j][resStartIdx[j]]);
+                if(dram_out_buffer[j][resStartIdx[j]++] != refResult[p]) diff++;
+                p++;
+            }
+            resStartIdx[j]++;
+        }
+        if(refResult[p-1] != -1) diff++;
+        printf("-1, ");
     }
-    //printf("-2\n");
+    
+    printf("-2\n");
     printf("diff = %d\n", diff);
     
     return diff;
