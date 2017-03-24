@@ -1,5 +1,6 @@
 #include "k5acc_m.h"
 #include <stdio.h>
+#include <string.h>
 
 int getOverlapping(int local_queries[Q*2], int local_ref[R*2], int local_fifo[Q*OUT_BUFFER_WIDTH], int offset){
     //printf("offset = %d\n", offset);
@@ -70,6 +71,9 @@ void workload(int* queries, int* refs, int dram_out_buffer[REF_SLICE_NUM][OUT_BU
             // copy queries from dram to bram
             int k;
             int offset = i + j*R*2;
+            // use memcpy instead of looping copy
+            memcpy(local_ref[j], refs + offset, 2*R*sizeof(int));
+            /*
             for(k = 0; k < R*2; k += 2){    // for each process unit, load corresponding refs
                 //#pragma HLS PIPELINE II=1 
                 //if(i != 0){
@@ -78,6 +82,7 @@ void workload(int* queries, int* refs, int dram_out_buffer[REF_SLICE_NUM][OUT_BU
                 local_ref[j][k] = refs[offset + k];
                 local_ref[j][k+1] = refs[offset + k + 1];
             }
+            */
         }
 
         // iterate through all the queries
@@ -86,12 +91,15 @@ void workload(int* queries, int* refs, int dram_out_buffer[REF_SLICE_NUM][OUT_BU
             //printf("query = %d\n", j);
             // copy queries from dram to bram
             int k = 0;
+            memcpy(local_queries[0], queries + j, 2*Q*sizeof(int));
+            /*
             for(k = 0; k < 2*Q; k += 2){
                 //#pragma HLS PIPELINE II=1
                 //printf("load q: (%d, %d)\n", queries[j + k], queries[j + k+1]);
                 local_queries[0][k] = queries[j + k];
                 local_queries[0][k+1] = queries[j + k + 1];
             }
+            */
             //printf("===\n");
 
             // duplicate the queries M-1 times
