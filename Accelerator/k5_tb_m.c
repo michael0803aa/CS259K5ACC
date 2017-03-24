@@ -64,7 +64,16 @@ int main(){
     // create output buffer for accelerator
     //int dram_out_buffer[OUT_BUFFER_WIDTH*QUERY_NUM] = {};
     //printf("size = %d\n", OUT_BUFFER_WIDTH*QUERY_NUM);
-    int* dram_out_buffer = (int*)malloc(sizeof(int) * OUT_BUFFER_WIDTH*QUERY_NUM);
+
+    // ***************** first design, dram_out_buffer is an one D array ******
+    //int* dram_out_buffer = (int*)malloc(sizeof(int) * OUT_BUFFER_WIDTH*QUERY_NUM);
+    // ************************************************************************
+
+    // **************** now, it's a 2 d array ************************
+    int* dram_out_buffer[REF_SLICE_NUM];
+    for(int i = 0; i < REF_SLICE_NUM; i++){
+        dram_out_buffer[i] = (int*)malloc(sizeof(int) * OUT_BUFFER_WIDTH*QUERY_NUM);
+    }
     if(dram_out_buffer == 0){
         printf("not enough memory G__G\n");
         return -1;

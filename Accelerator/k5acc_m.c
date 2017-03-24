@@ -24,7 +24,7 @@ int getOverlapping(int local_queries[Q*2], int local_ref[R*2], int local_fifo[Q*
     return idx;
 }
 
-void workload(int* queries, int* refs, int* dram_out_buffer){
+void workload(int* queries, int* refs, int** dram_out_buffer){
     // queries_len is a multiple of Q*2
     // ref_len is a multiple of M*R*2
     int out_buffer[OUT_BUFFER_HEIGHT][OUT_BUFFER_WIDTH];
@@ -58,6 +58,11 @@ void workload(int* queries, int* refs, int* dram_out_buffer){
         for(j = 0; j < Q*OUT_BUFFER_WIDTH; j++){    // loop 2 ~ 33
             local_fifo[i][j] = -2;
         }
+    }
+
+    for(i = 0; i < REF_SLICE_NUM; i++){
+        // load refs from dram to bram
+
     }
     
     for(i = 0, iter = 0; i < queries_len; i += 2*Q){ // Loop 34

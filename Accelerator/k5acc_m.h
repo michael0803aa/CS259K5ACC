@@ -2,6 +2,7 @@
 #define __K5_ACC_M_H__
 
 
+#define REF_SLICE_NUM 2
 #define R 1024*16     // 128
 #define Q 128       // 64
 #define M 32         // 8
