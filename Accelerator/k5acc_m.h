@@ -2,11 +2,11 @@
 #define __K5_ACC_M_H__
 
 
-#define R 1024*16     // 128
-#define Q 32       // 64
-#define M 16         // 8
-#define QUERY_NUM Q*64*64*12   // 12M
-#define REF_NUM R*M*32/16*2 // 8M
+#define R 32     // 128
+#define Q 16       // 64
+#define M 8         // 8
+#define QUERY_NUM Q*4096*32*12/16   // 12M
+#define REF_NUM R*M*1024*32*4*8/32/8 // 8M
 #define QUERY_BATCH 1
 #define OUT_BUFFER_WIDTH 112
 #define OUT_BUFFER_HEIGHT Q*QUERY_BATCH
