@@ -62,7 +62,7 @@ void workload(int* queries, int* refs, int** dram_out_buffer){
 
     for(i = 0, rIter = 0; i < ref_len; i += REF_NUM/REF_SLICE_NUM*2, rIter++){
         
-        printf("i = %d\n", i);
+        //printf("i = %d\n", i);
         idx_dram_out_buffer = 0;
         // load refs from dram to bram
         for(j = 0; j < M; j++){ // M process unit  Loop 34.1.1
@@ -72,6 +72,9 @@ void workload(int* queries, int* refs, int** dram_out_buffer){
             int offset = i + j*R*2;
             for(k = 0; k < R*2; k += 2){    // for each process unit, load corresponding refs
                 //#pragma HLS PIPELINE II=1 
+                //if(i != 0){
+                    //printf("ref: (%d, %d)\n", refs[offset + k], refs[offset + k+1]);
+                //}
                 local_ref[j][k] = refs[offset + k];
                 local_ref[j][k+1] = refs[offset + k + 1];
             }
@@ -80,14 +83,16 @@ void workload(int* queries, int* refs, int** dram_out_buffer){
         // iterate through all the queries
         int qIter;
         for(j = 0, qIter = 0; j < queries_len; j += 2*Q){
-            printf("query = %d\n", j);
+            //printf("query = %d\n", j);
             // copy queries from dram to bram
             int k = 0;
             for(k = 0; k < 2*Q; k += 2){
                 //#pragma HLS PIPELINE II=1
-                local_queries[0][k] = queries[i + k];
-                local_queries[0][k+1] = queries[i + k + 1];
+                //printf("load q: (%d, %d)\n", queries[j + k], queries[j + k+1]);
+                local_queries[0][k] = queries[j + k];
+                local_queries[0][k+1] = queries[j + k + 1];
             }
+            //printf("===\n");
 
             // duplicate the queries M-1 times
             for(k = 1; k < M; k++){
@@ -102,46 +107,58 @@ void workload(int* queries, int* refs, int** dram_out_buffer){
             for(k = 0; k < M; k++){ // M process unit
                 #pragma HLS UNROLL
                 // process queries
-                int offset = j + k*R*2;
+                int offset = i + k*R*2;
                 int len = getOverlapping(local_queries[k], local_ref[k], local_fifo[k], offset >> 1);
                 local_fifo[k][len] = -2;
                 
             }
+            //printf("done with overlapping\n");
             // flush FIFO to out_buffer
             for(k = 0; k < M; k++){ // M process unit, loop 34.1.2
+                //printf("k = %d\n", k);
                 //#pragma HLS PIPELINE II=1
                 int row = qIter*Q;
+                //printf("row = %d\n", row);
                 //printf("flush when j = %d\n", j);
                 int l;
                 for(l = 0; l < Q*OUT_BUFFER_WIDTH; l++){
+                    
                     #pragma HLS PIPELINE II=2
                     int num = local_fifo[k][l];
+                    
                     local_fifo[k][l] = -2;
                     if(num == -1){
                         ++row;
                     }
                     else if(num != -2){
-                   //     if(row >= OUT_BUFFER_HEIGHT)
-                     //       printf("row = %d, idx = %d, num = %d\n", row, idx_out_buffer[row], num);
+                        //printf("out buffer idx = %d\n", idx_out_buffer[row]);
+                        if(row >= OUT_BUFFER_HEIGHT)
+                            printf("row = %d, idx = %d, num = %d\n", row, idx_out_buffer[row], num);
+                        //if(rIter == 1)
+                            //printf("row = %d, num = %d\n", row, num);
                         out_buffer[row][idx_out_buffer[row]++] = num;
                     }
-                    
+                    //printf("l = %d, num = %d\n", l, num);
                 }
                 //printf("done\n");
             }
+            //printf("done with write to buffer\n");
             // flush out_buffer to dram_buffer
             if (qIter == QUERY_BATCH-1){ 
                 qIter = 0;
                 int k = 0;
                 for (k = 0; k < Q * QUERY_BATCH; k++){  // 34.3
+                    //printf("k = %d\n", k);
                     //#pragma HLS PIPELINE II=1
                     int l = 0;
                     for (l = 0; l < OUT_BUFFER_WIDTH; l++){ // 34.3.1
                         #pragma HLS PIPELINE II=3
                         if (l < idx_out_buffer[k]){
-                            dram_out_buffer[rIter][idx_dram_out_buffer++] = out_buffer[j][k];
+                            //if(rIter == 1)
+                                //printf("%d, data = %d\n", rIter, out_buffer[k][l]);
+                            dram_out_buffer[rIter][idx_dram_out_buffer++] = out_buffer[k][l];
                         }
-                        else if (k == idx_out_buffer[j]){
+                        else if (l == idx_out_buffer[k]){
                             dram_out_buffer[rIter][idx_dram_out_buffer++] = -1;
                         }
                     }
@@ -152,6 +169,7 @@ void workload(int* queries, int* refs, int** dram_out_buffer){
                 qIter++;
             }
         }
+        //printf("done with all the queries\n");
         dram_out_buffer[rIter][idx_dram_out_buffer++] = -2;
     }
     //printf("done, idx = %d\n", idx_dram_out_buffer);

@@ -18,7 +18,7 @@
 
 #define REF_SLICE_NUM 2
 #define M 2         // 8
-#define R (REF_NUM/M)     // 128
+#define R (REF_NUM/REF_SLICE_NUM/M)     // 128
 
 #define QUERY_BATCH 1
 #define OUT_BUFFER_WIDTH 112

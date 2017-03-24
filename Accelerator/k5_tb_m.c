@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "k5acc_m.h"
 
 int overlap(int qryS, int qryE, int refS, int refE){
@@ -78,6 +79,7 @@ int main(){
     int* dram_out_buffer[REF_SLICE_NUM];
     for(int i = 0; i < REF_SLICE_NUM; i++){
         dram_out_buffer[i] = (int*)malloc(sizeof(int) * OUT_BUFFER_WIDTH*QUERY_NUM);
+        memset(dram_out_buffer[i], 255, sizeof(int) * OUT_BUFFER_WIDTH*QUERY_NUM);
     }
     workload(queries, ref, dram_out_buffer);
 
@@ -88,13 +90,14 @@ int main(){
     for(int i = 0; i < QUERY_NUM; i++){
         for(int j = 0; j < REF_SLICE_NUM; j++){
             while(dram_out_buffer[j][resStartIdx[j]] != -1){
+                //printf("(%d, %d), ", j, dram_out_buffer[j][resStartIdx[j]]);
                 printf("%d, ", dram_out_buffer[j][resStartIdx[j]]);
                 if(dram_out_buffer[j][resStartIdx[j]++] != refResult[p]) diff++;
                 p++;
             }
             resStartIdx[j]++;
         }
-        if(refResult[p-1] != -1) diff++;
+        if(refResult[p++] != -1) diff++;
         printf("-1, ");
     }
     
